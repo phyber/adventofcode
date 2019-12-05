@@ -11,14 +11,18 @@ struct IntcodeError;
 
 #[derive(Debug, Clone, PartialEq)]
 enum Intcode {
+    Add,
     Finished,
+    Multiply,
     Unknown,
 }
 
 impl fmt::Display for Intcode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            Self::Add      => write!(f, "1"),
             Self::Finished => write!(f, "99"),
+            Self::Multiply => write!(f, "2"),
             Self::Unknown  => write!(f, "UNKNOWN"),
         }
     }
@@ -29,6 +33,8 @@ impl FromStr for Intcode {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let intcode = match s {
+            "1"  => Self::Add,
+            "2"  => Self::Multiply,
             "99" => Self::Finished,
             _    => Self::Unknown,
         };
