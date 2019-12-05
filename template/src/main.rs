@@ -7,7 +7,7 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     // Either read from the given file or stdin
-    let mut input: Box<io::Read> = if args.len() > 1 {
+    let input: Box<dyn io::Read> = if args.len() > 1 {
         let filename = &args[1];
         let fh = File::open(filename).unwrap();
         Box::new(fh)
