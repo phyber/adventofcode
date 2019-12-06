@@ -113,15 +113,15 @@ impl Computer {
         self.counter = self.counter + INSTRUCTION_SIZE;
     }
 
-    // Take a peek at the opcode at the current program counter
-    fn peek_opcode(&self) -> i64 {
+    // Returns the opcode at the current program counter
+    fn opcode(&self) -> i64 {
         let offset = self.counter;
         self.peek(offset)
     }
 
     // Returns the instruction at the current counter, excluding the opcode.
     fn instruction(&self) -> Instruction {
-        let start = self.counter + 1;
+        let start = self.counter + 1; // Offset of 1 to exclude opcode
         let end   = self.counter + INSTRUCTION_SIZE;
         let range = start..end;
 
@@ -130,14 +130,20 @@ impl Computer {
         (i[0] as usize, i[1] as usize, i[2] as usize)
     }
 
+    // Perform addition on the values at in_loc_a and in_loc_b, storing the
+    // result at out_loc.
     fn add(&mut self) {
         let (in_loc_a, in_loc_b, out_loc) = self.instruction();
+
         let sum = self.peek(in_loc_a) + self.peek(in_loc_b);
         self.poke(out_loc, sum);
     }
 
+    // Perform multiplication on the values at in_loc_a and in_loc_b, storing
+    // the result at out_loc.
     fn multiply(&mut self) {
         let (in_loc_a, in_loc_b, out_loc) = self.instruction();
+
         let product = self.peek(in_loc_a) * self.peek(in_loc_b);
         self.poke(out_loc, product);
     }
@@ -145,7 +151,7 @@ impl Computer {
     // Execute the current instruction at the program counter location,
     // Returns a bool indicating if the program is finished
     fn execute(&mut self) -> bool {
-        let opcode = self.peek_opcode();
+        let opcode = self.opcode();
         let mut finished = false;
 
         match opcode.into() {
