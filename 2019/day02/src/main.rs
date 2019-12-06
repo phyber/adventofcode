@@ -56,6 +56,17 @@ impl From<i64> for Intcode {
     }
 }
 
+impl Intcode {
+    fn instruction_length(&self) -> usize {
+        match *self {
+            Self::Add      => 4,
+            Self::Finished => 1,
+            Self::Multiply => 4,
+            Self::Unknown  => 0,
+        }
+    }
+}
+
 // Size of an instruction on this architecture
 const INSTRUCTION_SIZE: usize = 4;
 
@@ -124,8 +135,8 @@ impl Computer {
     }
 
     // Steps the program counter to the next set of instructions
-    fn step(&mut self) {
-        self.counter = self.counter + INSTRUCTION_SIZE;
+    fn step(&mut self, step_size: usize) {
+        self.counter = self.counter + step_size;
     }
 
     // Returns the opcode at the current program counter
@@ -171,15 +182,19 @@ impl Computer {
 
         match opcode.into() {
             Intcode::Add => {
+                let step_size = Intcode::from(opcode).instruction_length();
+
                 self.add();
-                self.step();
+                self.step(step_size);
             },
             Intcode::Finished => {
                 finished = true;
             },
             Intcode::Multiply => {
+                let step_size = Intcode::from(opcode).instruction_length();
+
                 self.multiply();
-                self.step();
+                self.step(step_size);
             },
             Intcode::Unknown => {
                 eprintln!("Unknown opcode encountered: {}", opcode);
