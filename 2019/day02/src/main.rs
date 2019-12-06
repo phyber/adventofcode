@@ -69,6 +69,9 @@ impl Intcode {
 
 // Size of an instruction on this architecture
 const INSTRUCTION_SIZE: usize = 4;
+const ADDR_VERB: usize = 1;
+const ADDR_NOUN: usize = 2;
+const ADDR_OUTPUT: usize = 0;
 
 // Program memory definition
 type Program = Vec<i64>;
@@ -81,7 +84,7 @@ type Instruction = (usize, usize, usize);
 
 #[derive(Debug, Default, Clone)]
 struct Computer {
-    counter:  usize,
+    counter: usize,
     program: Program,
     loaded:  bool,
 }
@@ -252,12 +255,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("{:?}", computer.core_dump());
 
     // Restore the old state
-    computer.poke(1, 12);
-    computer.poke(2, 2);
+    computer.poke(ADDR_VERB, 12);
+    computer.poke(ADDR_NOUN, 2);
 
     computer.run();
 
-    println!("State at pos 0: {}", computer.peek(0));
+    println!("State at pos 0: {}", computer.peek(ADDR_OUTPUT));
 
     Ok(())
 }
