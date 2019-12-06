@@ -240,6 +240,56 @@ fn input_reader(
     Ok(reader)
 }
 
+// Part 1
+// Simply execute the given program after restoring some state from the
+// previous run.
+fn part_one(data: &str) -> Result<(), Box<dyn Error>> {
+    let mut computer = Computer::new();
+    computer.load(&data)?;
+
+    // Restore the old state
+    computer.poke(ADDR_VERB, 12);
+    computer.poke(ADDR_NOUN, 2);
+
+    computer.run();
+
+    println!("State at pos {}: {}", ADDR_OUTPUT, computer.peek(ADDR_OUTPUT));
+
+    Ok(())
+}
+
+// Part 2
+// We're hunting for the needle, we just brute force it by iterating over all
+// possible noun/verb conbinations.
+fn part_two(data: &str) -> Result<(), Box<dyn Error>> {
+    let mut computer = Computer::new();
+
+    let noun_range = 0..=99;
+    let needle     = 19690720;
+
+    for noun in noun_range {
+        let verb_range = 0..=99;
+
+        for verb in verb_range {
+            computer.load(&data)?;
+
+            computer.poke(ADDR_VERB, verb);
+            computer.poke(ADDR_NOUN, noun);
+
+            computer.run();
+
+            let output = computer.peek(ADDR_OUTPUT);
+
+            if output == needle {
+                println!("Found it! Verb: {}, Noun: {}", verb, noun);
+                return Ok(())
+            }
+        }
+    }
+
+    Ok(())
+}
+
 // main
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Args = env::args().collect();
@@ -249,18 +299,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut reader = input_reader(args)?;
     reader.read_to_string(&mut buffer)?;
 
-    let mut computer = Computer::new();
-    computer.load(&buffer)?;
-
-    println!("{:?}", computer.core_dump());
-
-    // Restore the old state
-    computer.poke(ADDR_VERB, 12);
-    computer.poke(ADDR_NOUN, 2);
-
-    computer.run();
-
-    println!("State at pos 0: {}", computer.peek(ADDR_OUTPUT));
+    part_one(&buffer)?;
+    part_two(&buffer)?;
 
     Ok(())
 }
