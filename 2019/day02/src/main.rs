@@ -5,11 +5,6 @@ use std::fmt;
 use std::fs::File;
 use std::io;
 
-type Program = Vec<i64>;
-
-#[derive(Debug, Clone)]
-struct IntcodeError;
-
 #[derive(Debug, Clone, PartialEq)]
 enum Intcode {
     Add,
@@ -18,6 +13,7 @@ enum Intcode {
     Unknown,
 }
 
+// Convert Intcodes back into strings
 impl fmt::Display for Intcode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -29,6 +25,7 @@ impl fmt::Display for Intcode {
     }
 }
 
+// Take strings and turn them into Intcodes
 impl From<&str> for Intcode {
     fn from(s: &str) -> Self {
         match s {
@@ -36,6 +33,149 @@ impl From<&str> for Intcode {
             "2"  => Self::Multiply,
             "99" => Self::Finished,
             _    => Self::Unknown,
+        }
+    }
+}
+
+// Take i64 and turn them into Intcode
+impl From<i64> for Intcode {
+    fn from(s: i64) -> Self {
+        match s {
+            1  => Self::Add,
+            2  => Self::Multiply,
+            99 => Self::Finished,
+            _  => Self::Unknown,
+        }
+    }
+}
+
+// Size of an instruction on this architecture
+const INSTRUCTION_SIZE: usize = 4;
+
+// Program memory definition
+type Program = Vec<i64>;
+
+#[derive(Debug, Default, Clone)]
+struct Computer {
+    counter:  usize,
+    program: Program,
+    loaded:  bool,
+}
+
+// Implementation of a simple computer.
+// A single computer can run multiple programs by calling `load` to load a new
+// program and then `run`ning it.
+impl Computer {
+    fn new() -> Self {
+        Default::default()
+    }
+
+    // Load a program from a tape
+    fn load(&mut self, tape: &str) -> Result<(), Box<dyn Error>> {
+        let mut program = Program::new();
+
+        for s in tape.split(",") {
+            let num: i64 = s.trim().parse()?;
+            program.push(num);
+        }
+
+        self.counter = 0;
+        self.program = program;
+        self.loaded  = true;
+
+        Ok(())
+    }
+
+    // Dump out the program memory
+    fn core_dump(&self) -> Option<&Program> {
+        if self.loaded {
+            Some(self.program.as_ref())
+        }
+        else {
+            None
+        }
+    }
+
+    // Peek at a memory location
+    fn peek(&self, offset: usize) -> i64 {
+        self.program[offset]
+    }
+
+    // Poke a value into program memory at a given offset
+    fn poke(&mut self, offset: usize, value: i64) {
+        self.program[offset] = value;
+    }
+
+    // Steps the program counter to the next set of instructions
+    fn step(&mut self) {
+        self.counter = self.counter + INSTRUCTION_SIZE;
+    }
+
+    // Take a peek at the opcode at the current program counter
+    fn peek_opcode(&self) -> i64 {
+        let offset = self.counter;
+        self.peek(offset)
+    }
+
+    // Returns the instruction at the current counter, excluding the opcode.
+    fn instruction(&self) -> &[i64] {
+        let start = self.counter + 1;
+        let end   = self.counter + INSTRUCTION_SIZE;
+        let range = start..end;
+
+        &self.program[range]
+    }
+
+    // Execute the current instruction at the program counter location,
+    // Returns a bool indicating if the program is finished
+    fn execute(&mut self) -> bool {
+        let opcode = self.peek_opcode();
+        let mut finished = false;
+
+        match opcode.into() {
+            Intcode::Add => {
+                let instruction = self.instruction();
+
+                let loc_a = instruction[0] as usize;
+                let loc_b = instruction[1] as usize;
+                let output_offset = instruction[2] as usize;
+
+                let sum = self.peek(loc_a) + self.peek(loc_b);
+                self.poke(output_offset, sum);
+
+                self.step();
+            },
+            Intcode::Finished => {
+                finished = true;
+            },
+            Intcode::Multiply => {
+                let instruction = self.instruction();
+
+                let loc_a = instruction[0] as usize;
+                let loc_b = instruction[1] as usize;
+                let output_offset = instruction[2] as usize;
+
+                let product = self.peek(loc_a) * self.peek(loc_b);
+                self.poke(output_offset, product);
+
+                self.step();
+            }
+            Intcode::Unknown => {
+                eprintln!("Unknown opcode encountered: {}", opcode);
+            }
+        }
+
+        finished
+    }
+
+    // Run a program until completion
+    fn run(&mut self) {
+        loop {
+            let finished = self.execute();
+
+            if finished {
+                break;
+            }
         }
     }
 }
@@ -57,16 +197,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut buffer = String::new();
     input.read_to_string(&mut buffer)?;
 
-    // Get a new program space
-    let mut program = Program::new();
+    let mut computer = Computer::new();
+    computer.load(&buffer)?;
 
-    // Parse the intcode string into a program vec
-    for s in buffer.split(",") {
-        let num: i64 = s.trim().parse()?;
-        program.push(num);
-    }
+    println!("{:?}", computer.core_dump());
 
-    println!("{:?}", program);
+    // Restore the old state
+    computer.poke(1, 12);
+    computer.poke(2, 2);
+
+    computer.run();
+
+    println!("State at pos 0: {}", computer.peek(0));
 
     Ok(())
 }
@@ -74,6 +216,15 @@ fn main() -> Result<(), Box<dyn Error>> {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    // Take a core dump and stringify it
+    fn core_to_string(core: &[i64]) -> String {
+        core
+            .into_iter()
+            .map(|i| i.to_string())
+            .collect::<Vec<String>>()
+            .join(",")
+    }
 
     #[test]
     fn test_intcode_from_str() {
@@ -93,5 +244,27 @@ mod test {
     fn test_intcode_display() {
         let s = format!("{}", Intcode::Finished);
         assert_eq!("99", &s);
+    }
+
+    #[test]
+    fn test_computer_execute() {
+        let tests = vec![
+            ("1,0,0,0,99", "2,0,0,0,99"),
+            ("2,3,0,3,99", "2,3,0,6,99"),
+            ("2,4,4,5,99,0", "2,4,4,5,99,9801"),
+            ("1,1,1,4,99,5,6,0,99", "30,1,1,4,2,5,6,0,99"),
+        ];
+
+        let mut computer = Computer::new();
+
+        for (input, output) in tests {
+            computer.load(input);
+            computer.run();
+
+            let core = computer.core_dump().unwrap();
+            let core = core_to_string(core);
+
+            assert_eq!(core, output);
+        }
     }
 }
