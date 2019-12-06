@@ -3,7 +3,14 @@ use std::env;
 use std::error::Error;
 use std::fmt;
 use std::fs::File;
-use std::io;
+use std::io::{
+    self,
+    prelude::*,
+    BufReader,
+};
+
+// CLI args
+type Args = Vec<String>;
 
 #[derive(Debug, Clone, PartialEq)]
 enum Intcode {
@@ -55,6 +62,10 @@ const INSTRUCTION_SIZE: usize = 4;
 // Program memory definition
 type Program = Vec<i64>;
 
+// An Instruction is 3 usizes:
+//   - input location A
+//   - input location B
+//   - output location
 type Instruction = (usize, usize, usize);
 
 #[derive(Debug, Default, Clone)]
@@ -165,10 +176,11 @@ impl Computer {
             Intcode::Multiply => {
                 self.multiply();
                 self.step();
-            }
+            },
             Intcode::Unknown => {
                 eprintln!("Unknown opcode encountered: {}", opcode);
-            }
+                finished = true;
+            },
         }
 
         finished
@@ -186,11 +198,11 @@ impl Computer {
     }
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let args: Vec<String> = env::args().collect();
-
+fn input_reader(
+    args: Args,
+) -> Result<BufReader<Box<dyn io::Read>>, Box<dyn Error>> {
     // Either read from the given file or stdin
-    let mut input: Box<dyn io::Read> = if args.len() > 1 {
+    let input: Box<dyn io::Read> = if args.len() > 1 {
         let filename = &args[1];
         let fh = File::open(filename).unwrap();
         Box::new(fh)
@@ -200,8 +212,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         Box::new(stdin)
     };
 
+    let reader = BufReader::new(input);
+
+    Ok(reader)
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let args: Args = env::args().collect();
+
+    // Get the input
     let mut buffer = String::new();
-    input.read_to_string(&mut buffer)?;
+    let mut reader = input_reader(args)?;
+    reader.read_to_string(&mut buffer)?;
 
     let mut computer = Computer::new();
     computer.load(&buffer)?;
