@@ -55,6 +55,8 @@ const INSTRUCTION_SIZE: usize = 4;
 // Program memory definition
 type Program = Vec<i64>;
 
+type Instruction = (usize, usize, usize);
+
 #[derive(Debug, Default, Clone)]
 struct Computer {
     counter:  usize,
@@ -118,12 +120,26 @@ impl Computer {
     }
 
     // Returns the instruction at the current counter, excluding the opcode.
-    fn instruction(&self) -> &[i64] {
+    fn instruction(&self) -> Instruction {
         let start = self.counter + 1;
         let end   = self.counter + INSTRUCTION_SIZE;
         let range = start..end;
 
-        &self.program[range]
+        let i = &self.program[range];
+
+        (i[0] as usize, i[1] as usize, i[2] as usize)
+    }
+
+    fn add(&mut self) {
+        let (in_loc_a, in_loc_b, out_loc) = self.instruction();
+        let sum = self.peek(in_loc_a) + self.peek(in_loc_b);
+        self.poke(out_loc, sum);
+    }
+
+    fn multiply(&mut self) {
+        let (in_loc_a, in_loc_b, out_loc) = self.instruction();
+        let product = self.peek(in_loc_a) * self.peek(in_loc_b);
+        self.poke(out_loc, product);
     }
 
     // Execute the current instruction at the program counter location,
@@ -134,30 +150,14 @@ impl Computer {
 
         match opcode.into() {
             Intcode::Add => {
-                let instruction = self.instruction();
-
-                let loc_a = instruction[0] as usize;
-                let loc_b = instruction[1] as usize;
-                let output_offset = instruction[2] as usize;
-
-                let sum = self.peek(loc_a) + self.peek(loc_b);
-                self.poke(output_offset, sum);
-
+                self.add();
                 self.step();
             },
             Intcode::Finished => {
                 finished = true;
             },
             Intcode::Multiply => {
-                let instruction = self.instruction();
-
-                let loc_a = instruction[0] as usize;
-                let loc_b = instruction[1] as usize;
-                let output_offset = instruction[2] as usize;
-
-                let product = self.peek(loc_a) * self.peek(loc_b);
-                self.poke(output_offset, product);
-
+                self.multiply();
                 self.step();
             }
             Intcode::Unknown => {
@@ -258,7 +258,7 @@ mod test {
         let mut computer = Computer::new();
 
         for (input, output) in tests {
-            computer.load(input);
+            computer.load(input).unwrap();
             computer.run();
 
             let core = computer.core_dump().unwrap();
