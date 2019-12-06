@@ -87,12 +87,16 @@ impl Computer {
     fn load(&mut self, tape: &str) -> Result<(), Box<dyn Error>> {
         let mut program = Program::new();
 
+        // Parse the data and load into program memory.
         for s in tape.split(",") {
             let num: i64 = s.trim().parse()?;
             program.push(num);
         }
 
+        // A single computer could run multiple programs, ensure the counter is
+        // 0 on each new load.
         self.counter = 0;
+
         self.program = program;
         self.loaded  = true;
 
@@ -198,6 +202,7 @@ impl Computer {
     }
 }
 
+// Create a buffered reader from either a file or stdin
 fn input_reader(
     args: Args,
 ) -> Result<BufReader<Box<dyn io::Read>>, Box<dyn Error>> {
@@ -217,6 +222,7 @@ fn input_reader(
     Ok(reader)
 }
 
+// main
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Args = env::args().collect();
 
@@ -256,7 +262,7 @@ mod test {
 
     #[test]
     fn test_intcode_from_str() {
-        let ic: Intcode = "99".into(); //Intcode::from_str("99").unwrap();
+        let ic: Intcode = "99".into();
         assert_eq!(ic, Intcode::Finished);
     }
 
@@ -277,9 +283,9 @@ mod test {
     #[test]
     fn test_computer_execute() {
         let tests = vec![
-            ("1,0,0,0,99", "2,0,0,0,99"),
-            ("2,3,0,3,99", "2,3,0,6,99"),
-            ("2,4,4,5,99,0", "2,4,4,5,99,9801"),
+            ("1,0,0,0,99",          "2,0,0,0,99"),
+            ("2,3,0,3,99",          "2,3,0,6,99"),
+            ("2,4,4,5,99,0",        "2,4,4,5,99,9801"),
             ("1,1,1,4,99,5,6,0,99", "30,1,1,4,2,5,6,0,99"),
         ];
 
