@@ -48,21 +48,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     let reader = BufReader::new(input);
     let mut mass_fuel_required = 0;
     let mut fuel_fuel_required = 0;
-    let mut line_count = 1;
 
-    for line in reader.lines() {
+    for (count, line) in reader.lines().enumerate() {
         let mass: i64 = line?.parse()?;
         let fuel = fuel_required(mass);
         let fuel_fuel = fuel_for_fuel(fuel as i64);
 
         println!("{line}: {mass} -> {fuel} -> {fuel_fuel}",
-            line=line_count,
-            mass=mass,
-            fuel=fuel,
-            fuel_fuel=fuel_fuel,
+            line      = count + 1,
+            mass      = mass,
+            fuel      = fuel,
+            fuel_fuel = fuel_fuel,
         );
-
-        line_count = line_count + 1;
 
         mass_fuel_required = mass_fuel_required + fuel;
         fuel_fuel_required = fuel_fuel_required + fuel_fuel;
