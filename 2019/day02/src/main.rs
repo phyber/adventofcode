@@ -265,13 +265,10 @@ fn part_one(data: &str) -> Result<(), Box<dyn Error>> {
 fn part_two(data: &str) -> Result<(), Box<dyn Error>> {
     let mut computer = Computer::new();
 
-    let noun_range = 0..=99;
     let needle     = 19690720;
 
-    for noun in noun_range {
-        let verb_range = 0..=99;
-
-        for verb in verb_range {
+    for noun in 0..=99 {
+        for verb in 0..=99 {
             computer.load(&data)?;
 
             computer.poke(ADDR_VERB, verb);
