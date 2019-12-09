@@ -143,9 +143,10 @@ impl Computer {
     }
 
     // Returns the opcode at the current program counter
-    fn opcode(&self) -> i64 {
+    fn opcode(&self) -> Intcode {
         let offset = self.counter;
-        self.peek(offset)
+        let opcode = self.peek(offset);
+        opcode.into()
     }
 
     // Returns the instruction at the current counter, excluding the opcode.
@@ -183,9 +184,9 @@ impl Computer {
         let opcode = self.opcode();
         let mut finished = false;
 
-        match opcode.into() {
+        match opcode {
             Intcode::Add => {
-                let step_size = Intcode::from(opcode).instruction_length();
+                let step_size = opcode.instruction_length();
 
                 self.add();
                 self.step(step_size);
@@ -194,7 +195,7 @@ impl Computer {
                 finished = true;
             },
             Intcode::Multiply => {
-                let step_size = Intcode::from(opcode).instruction_length();
+                let step_size = opcode.instruction_length();
 
                 self.multiply();
                 self.step(step_size);
