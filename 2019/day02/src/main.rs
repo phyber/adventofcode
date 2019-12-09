@@ -136,8 +136,9 @@ impl Computer {
     }
 
     // Steps the program counter to the next set of instructions
-    fn step(&mut self, step_size: usize) {
-        self.counter = self.counter + step_size;
+    fn step(&mut self) {
+        let length = self.opcode().instruction_length();
+        self.counter = self.counter + length;
     }
 
     // Returns the opcode at the current program counter
@@ -163,8 +164,9 @@ impl Computer {
 
     // Perform addition on the values at in_loc_a and in_loc_b, storing the
     // result at out_loc.
-    fn add(&mut self, i_length: usize) {
-        let instruction = self.instruction(i_length);
+    fn add(&mut self) {
+        let length = self.opcode().instruction_length();
+        let instruction = self.instruction(length);
         let in_loc_a = instruction[0];
         let in_loc_b = instruction[1];
         let out_loc  = instruction[2];
@@ -175,8 +177,9 @@ impl Computer {
 
     // Perform multiplication on the values at in_loc_a and in_loc_b, storing
     // the result at out_loc.
-    fn multiply(&mut self, i_length: usize) {
-        let instruction = self.instruction(i_length);
+    fn multiply(&mut self) {
+        let length = self.opcode().instruction_length();
+        let instruction = self.instruction(length);
         let in_loc_a = instruction[0];
         let in_loc_b = instruction[1];
         let out_loc  = instruction[2];
@@ -189,20 +192,19 @@ impl Computer {
     // Returns a bool indicating if the program is finished
     fn execute(&mut self) -> bool {
         let opcode       = self.opcode();
-        let i_length     = opcode.instruction_length();
         let mut finished = false;
 
         match opcode {
             Intcode::Add => {
-                self.add(i_length);
-                self.step(i_length);
+                self.add();
+                self.step();
             },
             Intcode::Finished => {
                 finished = true;
             },
             Intcode::Multiply => {
-                self.multiply(i_length);
-                self.step(i_length);
+                self.multiply();
+                self.step();
             },
             Intcode::Unknown => {
                 eprintln!("Unknown opcode encountered: {}", opcode);
