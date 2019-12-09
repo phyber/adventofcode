@@ -118,6 +118,7 @@ impl Computer {
     }
 
     // Dump out the program memory
+    #[allow(dead_code)]
     fn core_dump(&self) -> Option<&Program> {
         if self.loaded {
             Some(self.program.as_ref())
