@@ -57,6 +57,7 @@ impl From<i64> for Intcode {
 }
 
 impl Intcode {
+    /// Returns the instruction length for an opcode
     fn instruction_length(&self) -> usize {
         match *self {
             Self::Add      => 4,
@@ -67,20 +68,16 @@ impl Intcode {
     }
 }
 
-// Size of an instruction on this architecture
-const INSTRUCTION_SIZE: usize = 4;
-const ADDR_VERB: usize = 1;
+// Memory locations and meanings
 const ADDR_NOUN: usize = 2;
 const ADDR_OUTPUT: usize = 0;
+const ADDR_VERB: usize = 1;
 
 // Program memory definition
 type Program = Vec<i64>;
 
-// An Instruction is 3 usizes:
-//   - input location A
-//   - input location B
-//   - output location
-type Instruction = (usize, usize, usize);
+// An instruction can be varying sizes depending on its opcode
+type Instruction = Vec<usize>;
 
 #[derive(Debug, Default, Clone)]
 struct Computer {
@@ -151,20 +148,26 @@ impl Computer {
     }
 
     // Returns the instruction at the current counter, excluding the opcode.
-    fn instruction(&self) -> Instruction {
+    fn instruction(&self, length: usize) -> Instruction {
         let start = self.counter + 1; // Offset of 1 to exclude opcode
-        let end   = self.counter + INSTRUCTION_SIZE;
+        let end   = self.counter + length;
         let range = start..end;
 
         let i = &self.program[range];
 
-        (i[0] as usize, i[1] as usize, i[2] as usize)
+        // Collect the range into a Vec<usize>
+        i.iter()
+            .map(|i| *i as usize)
+            .collect::<Vec<usize>>()
     }
 
     // Perform addition on the values at in_loc_a and in_loc_b, storing the
     // result at out_loc.
-    fn add(&mut self) {
-        let (in_loc_a, in_loc_b, out_loc) = self.instruction();
+    fn add(&mut self, i_length: usize) {
+        let instruction = self.instruction(i_length);
+        let in_loc_a = instruction[0];
+        let in_loc_b = instruction[1];
+        let out_loc  = instruction[2];
 
         let sum = self.peek(in_loc_a) + self.peek(in_loc_b);
         self.poke(out_loc, sum);
@@ -172,8 +175,11 @@ impl Computer {
 
     // Perform multiplication on the values at in_loc_a and in_loc_b, storing
     // the result at out_loc.
-    fn multiply(&mut self) {
-        let (in_loc_a, in_loc_b, out_loc) = self.instruction();
+    fn multiply(&mut self, i_length: usize) {
+        let instruction = self.instruction(i_length);
+        let in_loc_a = instruction[0];
+        let in_loc_b = instruction[1];
+        let out_loc  = instruction[2];
 
         let product = self.peek(in_loc_a) * self.peek(in_loc_b);
         self.poke(out_loc, product);
@@ -182,24 +188,21 @@ impl Computer {
     // Execute the current instruction at the program counter location,
     // Returns a bool indicating if the program is finished
     fn execute(&mut self) -> bool {
-        let opcode = self.opcode();
+        let opcode       = self.opcode();
+        let i_length     = opcode.instruction_length();
         let mut finished = false;
 
         match opcode {
             Intcode::Add => {
-                let step_size = opcode.instruction_length();
-
-                self.add();
-                self.step(step_size);
+                self.add(i_length);
+                self.step(i_length);
             },
             Intcode::Finished => {
                 finished = true;
             },
             Intcode::Multiply => {
-                let step_size = opcode.instruction_length();
-
-                self.multiply();
-                self.step(step_size);
+                self.multiply(i_length);
+                self.step(i_length);
             },
             Intcode::Unknown => {
                 eprintln!("Unknown opcode encountered: {}", opcode);
