@@ -8,6 +8,7 @@ use std::io::{
     prelude::*,
     BufReader,
 };
+use std::ops::Range;
 
 // CLI args
 type Args = Vec<String>;
@@ -96,22 +97,23 @@ impl Computer {
 
     // Load a program from a tape
     fn load(&mut self, tape: &str) -> Result<(), Box<dyn Error>> {
-        let mut program = Program::new();
+        // Set the initial state
+        self.reset();
 
         // Parse the data and load into program memory.
         for s in tape.split(",") {
             let num: i64 = s.trim().parse()?;
-            program.push(num);
+            self.program.push(num);
         }
 
-        // A single computer could run multiple programs, ensure the counter is
-        // 0 on each new load.
-        self.counter = 0;
-
-        self.program = program;
-        self.loaded  = true;
-
         Ok(())
+    }
+
+    // Resets the computer to its initial state
+    fn reset(&mut self) {
+        self.program = Program::new();
+        self.counter = 0;
+        self.loaded  = false;
     }
 
     // Dump out the program memory
@@ -128,6 +130,11 @@ impl Computer {
     // Peek at a memory location
     fn peek(&self, offset: usize) -> i64 {
         self.program[offset]
+    }
+
+    // A version of peek that takes a range and returns a vec
+    fn ranged_peek(&self, range: Range<usize>) -> Vec<i64> {
+        self.program[range].to_vec()
     }
 
     // Poke a value into program memory at a given offset
@@ -149,27 +156,26 @@ impl Computer {
     }
 
     // Returns the instruction at the current counter, excluding the opcode.
-    fn instruction(&self, length: usize) -> Instruction {
-        let start = self.counter + 1; // Offset of 1 to exclude opcode
-        let end   = self.counter + length;
-        let range = start..end;
-
-        let i = &self.program[range];
+    fn instruction(&self) -> Instruction {
+        let length = self.opcode().instruction_length();
+        let start  = self.counter + 1; // Offset of 1 to exclude opcode
+        let end    = self.counter + length;
+        let range  = start..end;
 
         // Collect the range into a Vec<usize>
-        i.iter()
-            .map(|i| *i as usize)
-            .collect::<Vec<usize>>()
+        self.ranged_peek(range)
+            .iter()
+            .map(|&i| i as usize)
+            .collect()
     }
 
     // Perform addition on the values at in_loc_a and in_loc_b, storing the
     // result at out_loc.
     fn add(&mut self) {
-        let length = self.opcode().instruction_length();
-        let instruction = self.instruction(length);
-        let in_loc_a = instruction[0];
-        let in_loc_b = instruction[1];
-        let out_loc  = instruction[2];
+        let instruction = self.instruction();
+        let in_loc_a    = instruction[0];
+        let in_loc_b    = instruction[1];
+        let out_loc     = instruction[2];
 
         let sum = self.peek(in_loc_a) + self.peek(in_loc_b);
         self.poke(out_loc, sum);
@@ -178,11 +184,10 @@ impl Computer {
     // Perform multiplication on the values at in_loc_a and in_loc_b, storing
     // the result at out_loc.
     fn multiply(&mut self) {
-        let length = self.opcode().instruction_length();
-        let instruction = self.instruction(length);
-        let in_loc_a = instruction[0];
-        let in_loc_b = instruction[1];
-        let out_loc  = instruction[2];
+        let instruction = self.instruction();
+        let in_loc_a    = instruction[0];
+        let in_loc_b    = instruction[1];
+        let out_loc     = instruction[2];
 
         let product = self.peek(in_loc_a) * self.peek(in_loc_b);
         self.poke(out_loc, product);
