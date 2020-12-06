@@ -104,10 +104,7 @@ fn input_reader(
     Ok(reader)
 }
 
-fn part_one(state: &Worldstate) {
-    let step_rows    = 1;
-    let step_columns = 3;
-
+fn part_one(state: &Worldstate, row_step: usize, col_step: usize) -> usize {
     let total_rows = state.rows();
     let total_cols = state.cols();
 
@@ -117,17 +114,15 @@ fn part_one(state: &Worldstate) {
 
     loop {
         // Go down a number of rows
-        row += step_rows;
+        row += row_step;
 
         // Bounds check
         if row >= total_rows {
             break
         }
 
-        //println!("Row {}: {:?}", row, state.row(row));
-
         // Go right a number of columns
-        col += step_columns;
+        col += col_step;
 
         // Wrapping
         col %= total_cols;
@@ -137,13 +132,13 @@ fn part_one(state: &Worldstate) {
 
         // Is it a tree?
         if tile == &Tile::Tree {
-            println!("Tree at: {}x{}", row, col);
-
             trees += 1;
         }
     }
 
     println!("Part 1: Encountered {} trees", trees);
+
+    trees
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -157,7 +152,27 @@ fn main() -> Result<(), Box<dyn Error>> {
     let state: Worldstate = buffer.into();
     //println!("{:?}", state);
 
-    part_one(&state);
+    part_one(&state, 1, 3);
+
+    // Reuse our part 1 function for part 2 here.
+    let slopes = vec![
+        (1, 1),
+        (1, 3),
+        (1, 5),
+        (1, 7),
+        (2, 1),
+    ];
+
+    let mut slope_trees = Vec::new();
+
+    for (row_step, col_step) in slopes {
+        let trees = part_one(&state, row_step, col_step);
+        slope_trees.push(trees);
+    }
+
+    let total: usize = slope_trees.iter().product();
+
+    println!("Part 2: {}", total);
 
     Ok(())
 }
