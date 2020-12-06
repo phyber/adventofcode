@@ -184,7 +184,7 @@ impl HairColour {
 
                 // Ensure that hcl is only composed of hex digits.
                 // Skip the first #
-                if hcl.chars().skip(1).any(|c| !c.is_digit(16)) {
+                if hcl.chars().skip(1).any(|c| c.is_uppercase() || !c.is_digit(16)) {
                     return Validation::Invalid;
                 }
 
@@ -267,6 +267,10 @@ impl PassportId {
         match &self.0 {
             None      => Validation::Invalid,
             Some(pid) => {
+                if pid.len() != 9 {
+                    return Validation::Invalid;
+                }
+
                 if pid.chars().any(|c| !c.is_digit(10)) {
                     return Validation::Invalid;
                 }
