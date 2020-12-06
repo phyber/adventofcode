@@ -9,13 +9,19 @@ use std::io::{
 };
 
 #[derive(Debug)]
+enum HeightType {
+    Centimetres(u64),
+    Inches(u64),
+}
+
+#[derive(Debug)]
 enum Detail {
     BirthYear(u64),
     CountryId(String),
     ExpirationYear(u64),
     EyeColour(String),
     HairColour(String),
-    Height(String),
+    Height(HeightType),
     IssueYear(u64),
     PassportId(String),
 }
@@ -32,7 +38,25 @@ impl From<&str> for Detail {
             "eyr" => Self::ExpirationYear(value.parse().unwrap()),
             "ecl" => Self::EyeColour(value.into()),
             "hcl" => Self::HairColour(value.into()),
-            "hgt" => Self::Height(value.into()),
+            "hgt" => {
+                // Collect the height, ignoring the suffix.
+                let height: String = value.chars()
+                    .filter(|c| c.is_numeric())
+                    .collect();
+
+                // Parse the height string to a u64
+                let height: u64 = height.parse().unwrap();
+
+                // Check the suffix to see which height type we have
+                let height_type = if value.ends_with("cm") {
+                    HeightType::Centimetres(height)
+                }
+                else {
+                    HeightType::Inches(height)
+                };
+
+                Self::Height(height_type)
+            },
             "iyr" => Self::IssueYear(value.parse().unwrap()),
             "pid" => Self::PassportId(value.into()),
             _     => panic!("Unknown password field"),
@@ -44,10 +68,22 @@ impl From<&str> for Detail {
 struct BirthYear(Option<u64>);
 
 impl BirthYear {
-    fn validate(&self) -> Validation {
+    fn validate_one(&self) -> Validation {
         match self.0 {
             None    => Validation::Invalid,
             Some(_) => Validation::Valid,
+        }
+    }
+
+    fn validate_two(&self) -> Validation {
+        match self.0 {
+            None      => Validation::Invalid,
+            Some(byr) => {
+                match byr {
+                    1920 ..= 2002 => Validation::Valid,
+                    _             => Validation::Invalid,
+                }
+            }
         }
     }
 }
@@ -56,7 +92,12 @@ impl BirthYear {
 struct CountryId(Option<String>);
 
 impl CountryId {
-    fn validate(&self) -> Validation {
+    fn validate_one(&self) -> Validation {
+        // CountryId is optional so always valid
+        Validation::Valid
+    }
+
+    fn validate_two(&self) -> Validation {
         // CountryId is optional so always valid
         Validation::Valid
     }
@@ -66,10 +107,22 @@ impl CountryId {
 struct ExpirationYear(Option<u64>);
 
 impl ExpirationYear {
-    fn validate(&self) -> Validation {
+    fn validate_one(&self) -> Validation {
         match self.0 {
             None    => Validation::Invalid,
             Some(_) => Validation::Valid,
+        }
+    }
+
+    fn validate_two(&self) -> Validation {
+        match self.0 {
+            None      => Validation::Invalid,
+            Some(eyr) => {
+                match eyr {
+                    2020 ..= 2030 => Validation::Valid,
+                    _             => Validation::Invalid,
+                }
+            }
         }
     }
 }
@@ -78,10 +131,33 @@ impl ExpirationYear {
 struct EyeColour(Option<String>);
 
 impl EyeColour {
-    fn validate(&self) -> Validation {
+    fn validate_one(&self) -> Validation {
         match self.0 {
             None    => Validation::Invalid,
             Some(_) => Validation::Valid,
+        }
+    }
+
+    fn validate_two(&self) -> Validation {
+        let valid_colours = vec![
+            "amb",
+            "blu",
+            "brn",
+            "gry",
+            "grn",
+            "hzl",
+            "oth",
+        ];
+
+        match &self.0 {
+            None      => Validation::Invalid,
+            Some(ecl) => {
+                if !valid_colours.contains(&ecl.as_str()) {
+                    return Validation::Invalid;
+                }
+
+                Validation::Valid
+            }
         }
     }
 }
@@ -90,22 +166,64 @@ impl EyeColour {
 struct HairColour(Option<String>);
 
 impl HairColour {
-    fn validate(&self) -> Validation {
+    fn validate_one(&self) -> Validation {
         match self.0 {
             None    => Validation::Invalid,
             Some(_) => Validation::Valid,
         }
     }
+
+    fn validate_two(&self) -> Validation {
+        match &self.0 {
+            None      => Validation::Invalid,
+            Some(hcl) => {
+                // A # followed by 6 characters
+                if !hcl.starts_with("#") || hcl.len() != 7 {
+                    return Validation::Invalid;
+                }
+
+                // Ensure that hcl is only composed of hex digits.
+                // Skip the first #
+                if hcl.chars().skip(1).any(|c| !c.is_digit(16)) {
+                    return Validation::Invalid;
+                }
+
+                Validation::Valid
+            }
+        }
+    }
 }
 
 #[derive(Debug, Default)]
-struct Height(Option<String>);
+struct Height(Option<HeightType>);
 
 impl Height {
-    fn validate(&self) -> Validation {
+    fn validate_one(&self) -> Validation {
         match self.0 {
             None    => Validation::Invalid,
             Some(_) => Validation::Valid,
+        }
+    }
+
+    fn validate_two(&self) -> Validation {
+        match &self.0 {
+            None              => Validation::Invalid,
+            Some(height_type) => {
+                match height_type {
+                    HeightType::Centimetres(cm) => {
+                        match cm {
+                            150 ..= 193 => Validation::Valid,
+                            _           => Validation::Invalid,
+                        }
+                    },
+                    HeightType::Inches(i) => {
+                        match i {
+                            59 ..= 76 => Validation::Valid,
+                            _         => Validation::Invalid,
+                        }
+                    },
+                }
+            }
         }
     }
 }
@@ -114,10 +232,22 @@ impl Height {
 struct IssueYear(Option<u64>);
 
 impl IssueYear {
-    fn validate(&self) -> Validation {
+    fn validate_one(&self) -> Validation {
         match self.0 {
             None    => Validation::Invalid,
             Some(_) => Validation::Valid,
+        }
+    }
+
+    fn validate_two(&self) -> Validation {
+        match self.0 {
+            None      => Validation::Invalid,
+            Some(iyr) => {
+                match iyr {
+                    2010 ..= 2020 => Validation::Valid,
+                    _             => Validation::Invalid,
+                }
+            }
         }
     }
 }
@@ -126,10 +256,23 @@ impl IssueYear {
 struct PassportId(Option<String>);
 
 impl PassportId {
-    fn validate(&self) -> Validation {
+    fn validate_one(&self) -> Validation {
         match self.0 {
             None    => Validation::Invalid,
             Some(_) => Validation::Valid,
+        }
+    }
+
+    fn validate_two(&self) -> Validation {
+        match &self.0 {
+            None      => Validation::Invalid,
+            Some(pid) => {
+                if pid.chars().any(|c| !c.is_digit(10)) {
+                    return Validation::Invalid;
+                }
+
+                Validation::Valid
+            }
         }
     }
 }
@@ -153,17 +296,39 @@ struct Passport {
 }
 
 impl Passport {
-    fn validate(&self) -> Validation {
+    fn validate_one(&self) -> Validation {
         // The required passport fields
         let required = vec![
-            self.birth_year.validate(),
-            //self.country_id.validate(),
-            self.expiration_year.validate(),
-            self.eye_colour.validate(),
-            self.hair_colour.validate(),
-            self.height.validate(),
-            self.issue_year.validate(),
-            self.passport_id.validate(),
+            self.birth_year.validate_one(),
+            //self.country_id.validate_one(),
+            self.expiration_year.validate_one(),
+            self.eye_colour.validate_one(),
+            self.hair_colour.validate_one(),
+            self.height.validate_one(),
+            self.issue_year.validate_one(),
+            self.passport_id.validate_one(),
+        ];
+
+        // Fail if any required field didn't pass validation
+        if required.iter().any(|f| *f == Validation::Invalid) {
+            return Validation::Invalid
+        }
+
+        // Finally
+        Validation::Valid
+    }
+
+    fn validate_two(&self) -> Validation {
+        // The required passport fields
+        let required = vec![
+            self.birth_year.validate_two(),
+            //self.country_id.validate_two(),
+            self.expiration_year.validate_two(),
+            self.eye_colour.validate_two(),
+            self.hair_colour.validate_two(),
+            self.height.validate_two(),
+            self.issue_year.validate_two(),
+            self.passport_id.validate_two(),
         ];
 
         // Fail if any required field didn't pass validation
@@ -263,11 +428,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     let passports = input_to_passports(&buffer);
 
     let day_one_valid_total = passports.iter()
-        .map(|p| p.validate())
+        .map(|p| p.validate_one())
         .filter(|v| *v == Validation::Valid)
         .count();
 
     println!("Day 1 valid: {}", day_one_valid_total);
+
+    let day_two_valid_total = passports.iter()
+        .map(|p| p.validate_two())
+        .filter(|v| *v == Validation::Valid)
+        .count();
+
+    println!("Day 2 valid: {}", day_two_valid_total);
 
     Ok(())
 }
@@ -277,7 +449,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_passports_validate() {
+    fn test_passports_validate_one() {
         // Taken from example on day 4
         let passports = vec![
             Passport {
@@ -322,12 +494,12 @@ mod test {
         ];
 
         let valid_count = passports.iter()
-            .map(|p| p.validate())
+            .map(|p| p.validate_one())
             .filter(|v| *v == Validation::Valid)
             .count();
 
         for (i, passport) in passports.iter().enumerate() {
-            println!("{}: {:?}", i, passport.validate())
+            println!("{}: {:?}", i, passport.validate_one())
         }
 
         assert_eq!(valid_count, 2);
