@@ -45,7 +45,10 @@ struct BirthYear(Option<u64>);
 
 impl BirthYear {
     fn validate(&self) -> Validation {
-        Validation::Valid
+        match self.0 {
+            None    => Validation::Invalid,
+            Some(_) => Validation::Valid,
+        }
     }
 }
 
@@ -54,6 +57,7 @@ struct CountryId(Option<String>);
 
 impl CountryId {
     fn validate(&self) -> Validation {
+        // CountryId is optional so always valid
         Validation::Valid
     }
 }
@@ -63,7 +67,10 @@ struct ExpirationYear(Option<u64>);
 
 impl ExpirationYear {
     fn validate(&self) -> Validation {
-        Validation::Valid
+        match self.0 {
+            None    => Validation::Invalid,
+            Some(_) => Validation::Valid,
+        }
     }
 }
 
@@ -72,7 +79,10 @@ struct EyeColour(Option<String>);
 
 impl EyeColour {
     fn validate(&self) -> Validation {
-        Validation::Valid
+        match self.0 {
+            None    => Validation::Invalid,
+            Some(_) => Validation::Valid,
+        }
     }
 }
 
@@ -81,7 +91,10 @@ struct HairColour(Option<String>);
 
 impl HairColour {
     fn validate(&self) -> Validation {
-        Validation::Valid
+        match self.0 {
+            None    => Validation::Invalid,
+            Some(_) => Validation::Valid,
+        }
     }
 }
 
@@ -90,7 +103,10 @@ struct Height(Option<String>);
 
 impl Height {
     fn validate(&self) -> Validation {
-        Validation::Valid
+        match self.0 {
+            None    => Validation::Invalid,
+            Some(_) => Validation::Valid,
+        }
     }
 }
 
@@ -99,7 +115,10 @@ struct IssueYear(Option<u64>);
 
 impl IssueYear {
     fn validate(&self) -> Validation {
-        Validation::Valid
+        match self.0 {
+            None    => Validation::Invalid,
+            Some(_) => Validation::Valid,
+        }
     }
 }
 
@@ -108,7 +127,10 @@ struct PassportId(Option<String>);
 
 impl PassportId {
     fn validate(&self) -> Validation {
-        Validation::Valid
+        match self.0 {
+            None    => Validation::Invalid,
+            Some(_) => Validation::Valid,
+        }
     }
 }
 
@@ -135,7 +157,7 @@ impl Passport {
         // The required passport fields
         let required = vec![
             self.birth_year.validate(),
-            // country_id is optional
+            //self.country_id.validate(),
             self.expiration_year.validate(),
             self.eye_colour.validate(),
             self.hair_colour.validate(),
@@ -226,6 +248,7 @@ fn input_to_passports(input: &str) -> Vec<Passport> {
         }
     }
 
+    passports.push(passport);
     passports
 }
 
@@ -239,7 +262,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let passports = input_to_passports(&buffer);
 
-    println!("{:#?}", passports);
+    let day_one_valid_total = passports.iter()
+        .map(|p| p.validate())
+        .filter(|v| *v == Validation::Valid)
+        .count();
+
+    println!("Day 1 valid: {}", day_one_valid_total);
 
     Ok(())
 }
@@ -247,4 +275,61 @@ fn main() -> Result<(), Box<dyn Error>> {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_passports_validate() {
+        // Taken from example on day 4
+        let passports = vec![
+            Passport {
+                eye_colour: EyeColour(Some("gry".into())),
+                passport_id: PassportId(Some("860033327".into())),
+                expiration_year: ExpirationYear(Some(2020)),
+                hair_colour: HairColour(Some("#fffffd".into())),
+                birth_year: BirthYear(Some(1937)),
+                issue_year: IssueYear(Some(2017)),
+                country_id: CountryId(Some("147".into())),
+                height: Height(Some("183cm".into())),
+            },
+            Passport {
+                issue_year: IssueYear(Some(2013)),
+                eye_colour: EyeColour(Some("amb".into())),
+                country_id: CountryId(Some("350".into())),
+                expiration_year: ExpirationYear(Some(2023)),
+                passport_id: PassportId(Some("028048884".into())),
+                hair_colour: HairColour(Some("#cfa07d".into())),
+                birth_year: BirthYear(Some(1929)),
+                ..Default::default()
+            },
+            Passport {
+                hair_colour: HairColour(Some("#ae17e1".into())),
+                issue_year: IssueYear(Some(2013)),
+                expiration_year: ExpirationYear(Some(2024)),
+                eye_colour: EyeColour(Some("brn".into())),
+                passport_id: PassportId(Some("760753108".into())),
+                birth_year: BirthYear(Some(1931)),
+                height: Height(Some("179cm".into())),
+                ..Default::default()
+            },
+            Passport {
+                hair_colour: HairColour(Some("#cfa07d".into())),
+                expiration_year: ExpirationYear(Some(2025)),
+                passport_id: PassportId(Some("166559648".into())),
+                issue_year: IssueYear(Some(2011)),
+                eye_colour: EyeColour(Some("brn".into())),
+                height: Height(Some("59in".into())),
+                ..Default::default()
+            },
+        ];
+
+        let valid_count = passports.iter()
+            .map(|p| p.validate())
+            .filter(|v| *v == Validation::Valid)
+            .count();
+
+        for (i, passport) in passports.iter().enumerate() {
+            println!("{}: {:?}", i, passport.validate())
+        }
+
+        assert_eq!(valid_count, 2);
+    }
 }
