@@ -106,7 +106,7 @@ fn input_reader(
 
 fn part_one(state: &Worldstate) {
     let step_rows    = 1;
-    let step_columns = 4;
+    let step_columns = 3;
 
     let total_rows = state.rows();
     let total_cols = state.cols();
