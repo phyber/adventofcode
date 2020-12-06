@@ -30,6 +30,15 @@ impl PasswordPolicy {
     fn min_max(&self) -> RangeInclusive<usize> {
         self.min ..= self.max
     }
+
+    // min and max are used as positions for part 2
+    fn pos_a(&self) -> usize {
+        self.min
+    }
+
+    fn pos_b(&self) -> usize {
+        self.max
+    }
 }
 
 impl From<&str> for PasswordPolicy {
@@ -69,7 +78,7 @@ impl From<&str> for PasswordEntry {
 }
 
 impl PasswordEntry {
-    fn compliant(&self) -> Compliance {
+    fn compliant_part_one(&self) -> Compliance {
         let letter = self.policy.letter();
         let range = self.policy.min_max();
 
@@ -78,6 +87,29 @@ impl PasswordEntry {
             .count();
 
         if range.contains(&count) {
+            Compliance::Compliant
+        }
+        else {
+            Compliance::NonCompliant
+        }
+    }
+
+    fn compliant_part_two(&self) -> Compliance {
+        // positions have no 0 index, so we offset by 1.
+        let letter = self.policy.letter();
+        let pos_a = self.policy.pos_a() - 1;
+        let pos_b = self.policy.pos_b() - 1;
+
+        let check = vec![
+            self.password.chars().nth(pos_a).unwrap(),
+            self.password.chars().nth(pos_b).unwrap(),
+        ];
+
+        let count = check.iter()
+            .filter(|c| c.to_string() == letter)
+            .count();
+
+        if count == 1 {
             Compliance::Compliant
         }
         else {
@@ -119,7 +151,18 @@ fn part_one(input: &str) {
     let password_entries = input_to_entries(&input);
 
     let count = password_entries.iter()
-        .map(|e| e.compliant())
+        .map(|e| e.compliant_part_one())
+        .filter(|c| c == &Compliance::Compliant)
+        .count();
+
+    println!("Found {} valid passwords", count);
+}
+
+fn part_two(input: &str) {
+    let password_entries = input_to_entries(&input);
+
+    let count = password_entries.iter()
+        .map(|e| e.compliant_part_two())
         .filter(|c| c == &Compliance::Compliant)
         .count();
 
@@ -135,6 +178,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     reader.read_to_string(&mut buffer)?;
 
     part_one(&buffer);
+    part_two(&buffer);
 
     Ok(())
 }
