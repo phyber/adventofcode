@@ -31,7 +31,28 @@ impl Group {
         self.0.push(person.clone());
     }
 
-    //fn all_yes_questions(&self) ->
+    // Return a count of how many questions each person in a group had in
+    // common
+    fn same_answers(&self) -> usize {
+        let mut counter: HashMap<&char, usize> = HashMap::new();
+
+        for person in &self.0 {
+            for c in &person.0 {
+                *counter.entry(c).or_insert(0) += 1;
+            }
+        }
+
+        let group_size = self.0.len();
+        let mut same_answers = 0;
+
+        for (_, num) in counter.iter() {
+            if *num == group_size {
+                same_answers += 1;
+            }
+        }
+
+        same_answers
+    }
 }
 
 #[derive(Debug, Default)]
@@ -40,6 +61,12 @@ struct Groups(Vec<Group>);
 impl Groups {
     fn push(&mut self, group: &Group) {
         self.0.push(group.clone());
+    }
+
+    fn same_answers(&self) -> usize {
+        self.0.iter()
+            .map(|g| g.same_answers())
+            .sum()
     }
 }
 
@@ -124,8 +151,9 @@ fn part_one(input: &str) {
 
 fn part_two(input: &str) {
     let groups = input_to_part_two_questions(&input);
+    let count = groups.same_answers();
 
-    println!("{:?}", groups);
+    println!("Part 2: {}", count);
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
