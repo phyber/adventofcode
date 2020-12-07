@@ -1,4 +1,5 @@
 // day
+use std::collections::HashMap;
 use std::env;
 use std::error::Error;
 use std::fs::File;
@@ -10,6 +11,37 @@ use std::io::{
 
 // CLI arguments
 type Args = Vec<String>;
+
+// Vec of questions a person answered yes to
+#[derive(Clone, Debug, Default)]
+struct Person(Vec<char>);
+
+impl Person {
+    fn push(&mut self, c: char) {
+        self.0.push(c);
+    }
+}
+
+// Group of people that answered questions
+#[derive(Clone, Debug, Default)]
+struct Group(Vec<Person>);
+
+impl Group {
+    fn push(&mut self, person: &Person) {
+        self.0.push(person.clone());
+    }
+
+    //fn all_yes_questions(&self) ->
+}
+
+#[derive(Debug, Default)]
+struct Groups(Vec<Group>);
+
+impl Groups {
+    fn push(&mut self, group: &Group) {
+        self.0.push(group.clone());
+    }
+}
 
 // Get an input reader
 fn input_reader(
@@ -56,10 +88,44 @@ fn input_to_part_one_questions(input: &str) -> Vec<usize> {
     yes
 }
 
-fn part_one(q: &[usize]) {
-    let total: usize = q.iter().sum();
+fn input_to_part_two_questions(input: &str) -> Groups {
+    let mut groups: Groups = Default::default();
+    let mut group: Group = Default::default();
+
+    for line in input.lines() {
+        if line.len() > 0 {
+            // Each line is a new person
+            let mut person: Person = Default::default();
+
+            for c in line.chars() {
+                person.push(c)
+            }
+
+            group.push(&person);
+        }
+        else {
+            // A blank line is the end of a group of people and we can add the
+            // group to the groups.
+            groups.push(&group);
+            group = Default::default();
+        }
+    }
+
+    groups.push(&group);
+    groups
+}
+
+fn part_one(input: &str) {
+    let questions = input_to_part_one_questions(&input);
+    let total: usize = questions.iter().sum();
 
     println!("Part 1: Yes = {}", total);
+}
+
+fn part_two(input: &str) {
+    let groups = input_to_part_two_questions(&input);
+
+    println!("{:?}", groups);
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -70,9 +136,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut reader = input_reader(args)?;
     reader.read_to_string(&mut buffer)?;
 
-    let questions = input_to_part_one_questions(&buffer);
 
-    part_one(&questions);
+    part_one(&buffer);
+    part_two(&buffer);
 
     Ok(())
 }
