@@ -33,7 +33,7 @@ fn input_reader(
 
 fn str_to_nums(input: &str) -> Vec<usize> {
     input.lines()
-        .map(|s| s.parse::<usize>().expect("valid integer"))
+        .map(|s| s.parse().expect("valid integer"))
         .collect()
 }
 
