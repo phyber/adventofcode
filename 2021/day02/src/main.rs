@@ -88,6 +88,26 @@ fn part_one(directions: &Directions) {
     println!("Part 1: {}", hpos * depth);
 }
 
+fn part_two(directions: &Directions) {
+    let mut hpos = 0;
+    let mut depth = 0;
+    let mut aim = 0;
+
+    for direction in directions.0.iter() {
+        match direction {
+            Direction::Down(num) => aim += num,
+            Direction::Forward(num) => {
+                hpos += num;
+                depth += aim * num;
+            },
+            Direction::Up(num) => aim -= num,
+        }
+    }
+
+    println!("H: {}, D: {}, A: {}", hpos, depth, aim);
+    println!("Part 2: {}", hpos * depth);
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Args = env::args().collect();
 
@@ -99,6 +119,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let directions = Directions::from(&buffer);
 
     part_one(&directions);
+    part_two(&directions);
 
     Ok(())
 }
